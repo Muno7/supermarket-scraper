@@ -1,6 +1,7 @@
 import puppeteer from 'puppeteer';
+import fs from 'fs';
 
-async function getHTML() {
+async function scrapeProducts() {
     const browser = await puppeteer.launch({
     headless: false // Opens visible browser
     });
@@ -14,11 +15,37 @@ async function getHTML() {
         buttons.forEach(button => button.click());
     }); /* click all visa alla buttons to make all products appear on the page */
 
-    const productTeasers = await page.$$('div.ProductTeaser');
+    const productElements = await page.$$('div.ProductTeaser');
 
-    console.log(productTeasers, productTeasers.length);
+    for (const productElement of productElements) {
+        await scrapeProductData(productElement);
+    }
+    
 
     await browser.close();
 }
 
-getHTML();
+let products = [];
+
+async function scrapeProductData(productElement) {
+  const productData = await productElement.evaluate(element => {
+    const title = element.querySelector('h3.ProductTeaser-heading')?.textContent?.trim() || 'No title';
+    const price = element.querySelector('div.OXm1GQVM')?.textContent?.trim() || element.querySelector('div.lQkA89R')?.textContent?.trim() || 'No price';
+    const image = element.querySelector('div.ProductTeaser-image img')?.src || 'No image';
+    
+    return {
+      title,
+      price, 
+      image
+    };
+  });
+  
+  products.push(productData);
+  
+  // Save to JSON file
+  fs.writeFileSync('products.json', JSON.stringify(products, null, 2));
+  
+  console.log(`Scraped: ${productData.title}`);
+}
+
+scrapeProducts();
