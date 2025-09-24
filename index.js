@@ -1,8 +1,5 @@
 import puppeteer from 'puppeteer';
 
-// Create a delay using a Promise
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
 async function getHTML() {
     const browser = await puppeteer.launch({
     headless: false // Opens visible browser
