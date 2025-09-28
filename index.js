@@ -29,14 +29,30 @@ let products = [];
 
 async function scrapeProductData(productElement) {
   const productData = await productElement.evaluate(element => {
-    const title = element.querySelector('h3.ProductTeaser-heading')?.textContent?.trim() || 'No title';
-    const price = element.querySelector('div.OXm1GQVM')?.textContent?.trim() || element.querySelector('div.lQkA89R')?.textContent?.trim() || 'No price';
-    const image = element.querySelector('div.ProductTeaser-image img')?.src || 'No image';
-    
+    const title = element.querySelector('h3.ProductTeaser-heading')?.textContent?.trim() || null;
+    const price = element.querySelector('div.OXm1GQVM')?.textContent?.trim() || element.querySelector('div.lQkA89R')?.textContent?.trim() || null;
+    const cents = element.querySelector('.uHKGEzxo')?.textContent?.trim() || element.querySelector('.W4Xpjgmp')?.textContent?.trim() || null;
+    const unit = element.querySelector('.ew9hNB6_')?.textContent?.trim() || element.querySelector('.kk5N_OPI')?.textContent?.trim() || null;
+    const deal =  element.querySelector('.QUeU6xhZ')?.textContent?.trim() || null
+    const size =  element.querySelector('.EnRQ98Sx.Nk9lLHfd.ahPAzIfS')?.textContent?.trim() || null
+    const brand =  element.querySelector('div.ProductTeaser-brand')?.textContent?.trim() || null
+    const comparisonPrice = element.querySelector('.nEatcoiG :nth-of-type(3)')?.textContent?.trim() || null
+    const image = element.querySelector('div.ProductTeaser-image img')?.src || null;
+    const isMember = element.querySelector('.SlFPVeq_') ? true : false
+    const badges = Array.from(element.querySelectorAll('.ProductTeaser-badges img')).map(img => img.src) || null
+        
     return {
       title,
-      price, 
-      image
+      price,
+      cents,
+      unit,
+      deal,
+      size,
+      brand,
+      comparisonPrice,
+      image,
+      isMember,
+      badges
     };
   });
   
