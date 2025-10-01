@@ -9,11 +9,11 @@ async function getProducts() {
     const page = await browser.newPage();
     await page.goto('https://www.coop.se/butiker-erbjudanden/coop/coop-skurup/');
 
-    await page.waitForSelector('div.Rnj2piQi button.Wy2NiM6K.tkw4k9hc.dIzgXmHF'); /* wait for the visa alla buttons to appear */
+    await page.waitForSelector('div.Rnj2piQi button.Wy2NiM6K.tkw4k9hc.dIzgXmHF'); // wait for the visa alla buttons to appear
     await page.evaluate(() => {
         const buttons = document.querySelectorAll('div.Rnj2piQi button.Wy2NiM6K.tkw4k9hc.dIzgXmHF');
         buttons.forEach(button => button.click());
-    }); /* click all visa alla buttons to make all products appear on the page */
+    }); // click all visa alla buttons to make all products appear on the page
 
     const productElements = await page.$$('div.ProductTeaser');
 
@@ -86,11 +86,13 @@ async function scrapeProductData(productElement, isVariant) {
     };
   });
   
+    // if the product has variants and itself is not variant of another product then scrape the variants of that product
     if (!isVariant && productData.hasVariants) {
         productData.variants = await scrapeProductVariants(productElement);
         delete productData.hasVariants;
     }
 
+    // if the product is not a variant of another product then add the product as its own product in json
     if (!isVariant) {
         pushProductsToJson(productData);
     }
