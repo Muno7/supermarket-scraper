@@ -30,48 +30,21 @@ async function getProducts() {
     await browser.close();
 }
 
-
-async function scrapeProductVariants(productElement) {
-    let variants = [];
-
-    // Get the parent of productElement, then find the div within it
-    const variantsDiv = await productElement.evaluateHandle(element => {
-        element.querySelector('.Wy2NiM6K.iyTkejCQ.nZnVqEJd.mOvy16Ff').click();
-
-        const parent = element.parentElement;
-        let sibling = parent.nextElementSibling;
-        // Keep going through siblings until we find the div containing the products variants
-        while (sibling) {
-            if (sibling.matches('div.Grid-cell.u-sizeFull.u-paddingAz')) {
-                return sibling;
-            }
-            sibling = sibling.nextElementSibling;
-        }
-        return null; // Not found
-    });
-
-    
-    const variantsElements = await variantsDiv.$$('div.ProductTeaser');
-
-    for (const productElement of variantsElements) {
-        variants.push(await scrapeProductData(productElement, true));
-    }
-    
-    return variants;
-}
-
-async function scrapeProductData(productOverlay, isVariant) {
+async function scrapeProductData(productOverlay) {
     const productData = await productOverlay.evaluate(element => {
-    const title = element.querySelector('.ids-modal-base__title')?.textContent?.trim() || null;
+    let title = element.querySelector('.ids-modal-base__title')?.textContent?.trim() || null; /* change if later if we have only one variant for more detailed title */
+    const image = element.querySelector('.innerImageContainer.image img')?.src || null;
     const price = element.querySelector('.price-splash__text__firstValue')?.textContent?.trim() || null;
     const cents = element.querySelector('.price-splash__text__secondaryValue')?.textContent?.trim() || null;
     const unit = element.querySelector('.price-splash__text__suffix')?.textContent?.trim() || null;
     const deal =  element.querySelector('.price-splash__text__prefix')?.textContent?.trim() || null;
     const detailDivs = element.querySelectorAll('.detailsContainerInner > div');
+    const isMember = element.querySelector('.price-splash__icon.price-splash__icon--stammis') ? true : false;
 
     let size = null;
     let brand = null;
     let comparisonPrice = null;
+    let moreInfo = null;
 
     detailDivs.forEach(div => {
     const label = div.querySelector('.label')?.textContent?.trim();
@@ -84,12 +57,22 @@ async function scrapeProductData(productOverlay, isVariant) {
     } else if (label.includes('Leverantör/Land')) {
         brand = text;
     } else if (label.includes('Jmfpris')) {
-        comparisonPrice = text;
+        comparisonPrice = text ;
+    } else if (label.includes('Mer information')) {
+        moreInfo = text;
     }
     });
     
-    const image = element.querySelector('.innerImageContainer.image img')?.src || null;
-    const isMember = element.querySelector('.price-splash__icon.price-splash__icon--stammis') ? true : false;        
+    let variants = null;
+    const variantElements = element.querySelectorAll('.articleList .articleListItem__item');
+
+    if (variantElements.length > 1) {
+        variants = Array.from(variantElements).map(li => {
+            const name = li.querySelector('.articleTitle')?.textContent?.trim() || null;
+            const picture = li.querySelector('.articleImage')?.getAttribute('src') || null;
+            return { name, picture };
+        });
+    }
    
     return {
       title,
@@ -100,16 +83,14 @@ async function scrapeProductData(productOverlay, isVariant) {
       size,
       brand,
       comparisonPrice,
+      moreInfo,
       image,
       isMember,
+      variants
     };
   });
   
-    // if the product has variants and itself is not variant of another product then scrape the variants of that product
     pushProductsToJson(productData);
-
-
-    console.log(`Scraped: ${productData.title}`);
     return productData;
 }
 
@@ -119,7 +100,7 @@ async function pushProductsToJson(productData) {
     products.push(productData);
   
     // Save to JSON file
-    fs.writeFileSync('products.json', JSON.stringify(products, null, 2));
+    fs.writeFileSync('ica.json', JSON.stringify(products, null, 2));
 
 }
 
