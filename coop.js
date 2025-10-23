@@ -1,12 +1,14 @@
 import puppeteer from 'puppeteer';
 import fs from 'fs';
 
+let page;
+
 async function getProducts() {
     const browser = await puppeteer.launch({
     headless: false // Opens visible browser
     });
 
-    const page = await browser.newPage();
+    page = await browser.newPage();
     await page.goto('https://www.coop.se/butiker-erbjudanden/coop/coop-skurup/');
 
     await page.waitForSelector('div.Rnj2piQi button.Wy2NiM6K.tkw4k9hc.dIzgXmHF'); // wait for the visa alla buttons to appear
@@ -30,27 +32,21 @@ async function scrapeProductVariants(productElement) {
     let variants = [];
 
     // Get the parent of productElement, then find the div within it
-    const variantsDiv = await productElement.evaluateHandle(element => {
-        element.querySelector('.Wy2NiM6K.iyTkejCQ.nZnVqEJd.mOvy16Ff').click();
-
-        const parent = element.parentElement;
-        let sibling = parent.nextElementSibling;
-        // Keep going through siblings until we find the div containing the products variants
-        while (sibling) {
-            if (sibling.matches('div.Grid-cell.u-sizeFull.u-paddingAz')) {
-                return sibling;
-            }
-            sibling = sibling.nextElementSibling;
-        }
-        return null; // Not found
+    await productElement.evaluate(element => {
+        element.querySelector('.Wy2NiM6K.iyTkejCQ._yrJb637.mOvy16Ff').click();
     });
-
+    const variantsDiv = await page.$('.BwcVHsZk.vqviwfSt')
     
-    const variantsElements = await variantsDiv.$$('div.ProductTeaser');
-
+    const variantsElements = await variantsDiv.$$('article.ohKiwh8z.xSu5Uapq');
+    
     for (const productElement of variantsElements) {
         variants.push(await scrapeProductData(productElement, true));
     }
+    
+    await variantsDiv.evaluate(element => {
+        element.querySelector('.Wy2NiM6K.tkw4k9hc.dIzgXmHF.MV0OfllN').click();
+    });
+    await page.waitForSelector('.BwcVHsZk.vqviwfSt', { hidden: true });
     
     return variants;
 }
@@ -96,6 +92,11 @@ async function scrapeProductData(productElement, isVariant) {
     };
   });
   
+    // if the product has variants and itself is not variant of another product then scrape the variants of that product
+    if (!isVariant && productData.hasVariants) {
+        productData.variants = await scrapeProductVariants(productElement);
+        delete productData.hasVariants;
+    }
 
     // if the product is not a variant of another product then add the product as its own product in json
     if (!isVariant) {
