@@ -22,8 +22,7 @@ async function getProducts() {
         });
         await page.waitForSelector('.ids-modal-base__container-inner');
         const productOverlay = await page.$('.ids-modal-base__container-inner');
-        console.log(productOverlay)
-        await scrapeProductData(productOverlay, false);
+        await scrapeProductData(productOverlay);
     }
     
 
@@ -34,8 +33,19 @@ async function scrapeProductData(productOverlay) {
     const productData = await productOverlay.evaluate(element => {
     let title = element.querySelector('.ids-modal-base__title')?.textContent?.trim() || null; /* change if later if we have only one variant for more detailed title */
     const image = element.querySelector('.innerImageContainer.image img')?.src || null;
-    const price = element.querySelector('.price-splash__text__firstValue')?.textContent?.trim() || null;
-    const cents = element.querySelector('.price-splash__text__secondaryValue')?.textContent?.trim() || null;
+    const priceText = element.querySelector('.price-splash__text__firstValue')?.textContent?.trim() || null;
+    const centsText = element.querySelector('.price-splash__text__secondaryValue')?.textContent?.trim() || null;
+
+    let priceCents = null;
+
+    if (priceText) {
+        // Combine crowns and cents into a single integer (e.g., 29 kr + 90 öre = 2990)
+        const crowns = parseInt(priceText.replace(/\D/g, '')) || 0;
+        const cents = parseInt(centsText?.replace(/\D/g, '') || '0');
+        priceCents = crowns * 100 + cents;
+    }
+
+
     const unit = element.querySelector('.price-splash__text__suffix')?.textContent?.trim() || null;
     const deal =  element.querySelector('.price-splash__text__prefix')?.textContent?.trim() || null;
     const detailDivs = element.querySelectorAll('.detailsContainerInner > div');
@@ -76,14 +86,13 @@ async function scrapeProductData(productOverlay) {
    
     return {
       title,
-      price,
-      cents,
+      priceCents,
       unit,
       deal,
       size,
       brand,
-      comparisonPrice,
       moreInfo,
+      comparisonPrice,
       image,
       isMember,
       variants

@@ -96,36 +96,34 @@ async function scrapeProductData(productElement) {
       brand = parts[0] || null;
       size = parts.slice(1).join(' ') || null;
     }
-
+    const unit = element.querySelector('.sc-4b8cc2f9-6.jxQDEl')?.textContent?.trim() || null;
     // Price info
     const priceMajor = element.querySelector('.sc-4b8cc2f9-2.cCZiOx')?.textContent?.trim() || '0';
     const priceMinor = element.querySelector('.sc-4b8cc2f9-5.ggAScU')?.textContent?.trim() || '00';
-    const unit = element.querySelector('.sc-4b8cc2f9-6.jxQDEl')?.textContent?.trim() || null;
-    const price = `${priceMajor}.${priceMinor}`;
+
+    // Combine into a float, normalize commas, and convert to cents
+    const normalizedPrice = `${priceMajor}.${priceMinor}`.replace(',', '.');
+    const floatPrice = parseFloat(normalizedPrice);
+    const priceCents = !isNaN(floatPrice) ? Math.round(floatPrice * 100) : null;
 
     // Deal type (e.g. "5 för", "3 för")
     const deal = element.querySelector('.sc-9f1d623-14.bhpxzP')?.textContent?.trim() || null;
 
-    // Multiple labels
-    const badges = Array.from(element.querySelectorAll('.sc-9f1d623-19.dmiNIE img'))
-      .map(img => ({ src: img.getAttribute('src') || null,}));
-
-    // Check if membership price (Willys Plus)
+    // Multiple badges
+    const badges = Array.from(element.querySelectorAll('.sc-9f1d623-19.dmiNIE img')).map(img => img.src) || null;
     const isMemeber = !!element.querySelector('.sc-4b8cc2f9-7.chdLmu svg');
-
-    // Image
     const image = element.querySelector('img[itemprop="image"]')?.src || null;
 
     return {
       title,
-      brand,
-      size,
-      price,
+      priceCents,
       unit,
       deal,
-      badges,
+      size,
+      brand,
+      image,
       isMemeber,
-      image
+      badges
     };
   });
 

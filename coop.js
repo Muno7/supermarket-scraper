@@ -54,7 +54,21 @@ async function scrapeProductVariants(productElement) {
 async function scrapeProductData(productElement, isVariant) {
   const productData = await productElement.evaluate(element => {
     const title = element.querySelector('.OXTlHT32')?.textContent?.trim() || null;
-    const price = element.querySelector('.slH8Imgo span:nth-last-child(2)')?.textContent?.trim() || Array.from(element.querySelector('.n1OznkM1')?.childNodes).filter(node => node.nodeType === Node.TEXT_NODE)[0]?.textContent?.trim() || null;
+    // Coop sometimes has "30,00" or just "30"
+    const rawPrice = element.querySelector('.slH8Imgo span:nth-last-child(2)')?.textContent?.trim()
+        || Array.from(element.querySelector('.n1OznkM1')?.childNodes || [])
+            .filter(node => node.nodeType === Node.TEXT_NODE)[0]?.textContent?.trim()
+        || null;
+
+    let priceCents = null;
+
+    if (rawPrice) {
+        // Normalize "30,00" → "30.00" → 3000
+        const normalized = rawPrice.replace(',', '.').replace(/[^\d.]/g, '');
+        const floatPrice = parseFloat(normalized);
+        priceCents = Math.round(floatPrice * 100);
+    }
+
     const unit = element.querySelector('.Oam2mkaA :nth-of-type(2)')?.textContent?.trim() || null;
     const deal =
         element.querySelector('.slH8Imgo')?.querySelector('.u-textMedium')
@@ -78,7 +92,7 @@ async function scrapeProductData(productElement, isVariant) {
         
     return {
       title,
-      price,
+      priceCents,
       unit,
       deal,
       size,
